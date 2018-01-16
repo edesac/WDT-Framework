@@ -30,10 +30,11 @@ class WPCronRecurrence {
 }
 
 class WPCronEvent {
-    private $__recurrence; //WPCronRecurrence
+    private $__recurrence; //string
     private $__event_name; //string
     private $__callback; //string
-    private static $__recurrences; //array of WPCronRecurrence
+
+    private static $__recurrences; //array of WPCronRecurrence; custom recurrences
 
     /**
      *
@@ -45,8 +46,10 @@ class WPCronEvent {
         $this->__callback = $callback;
         cron_log('new cron event ' . $recurrence);
         cron_log(self::$__recurrences);
+
         if (in_array($recurrence, $default_recurrences)) {
-            self::$__recurrence []= $recurrence;
+            $this->__recurrence = $recurrence;
+            $this->__event_name = 'event-' . (string)$recurrence;
         }
         else if (is_int($recurrence)) {
             if (!is_array(self::$__recurrences)) {
@@ -57,20 +60,21 @@ class WPCronEvent {
                 //add it
                 cron_log('adding new recurrence ' . $recurrence) ;
                 $obj_recurrence = new WPCronRecurrence('every' . (string)$recurrence . 'sec', $recurrence, 'Every ' . (string)$recurrence . ' Seconds');
-
-                $this->__event_name = 'event-every' . (string)$recurrence . 'sec';
-                $this->__recurrence = $obj_recurrence;
-
-                register_activation_hook($file, array($this, 'my_activation'));
-                register_deactivation_hook($file, array($this, 'my_deactivation'));
-
                 self::$__recurrences [$recurrence] = $obj_recurrence;
             }
+            else {
+                $obj_recurrence = self::$__recurrences [$recurrence];
+            }
+
+            $this->__recurrence = $obj_recurrence->getName();
+            $this->__event_name = 'event-every' . (string)$recurrence . 'sec';
         }
         else {
             //handle this
-        }
+        }        
 
+        register_activation_hook($file, array($this, 'my_activation'));
+        register_deactivation_hook($file, array($this, 'my_deactivation'));
 
         add_action($this->__event_name, $this->__callback);
     }
@@ -83,8 +87,8 @@ class WPCronEvent {
         cron_log('activating...');
 
         if (! wp_next_scheduled ($this->__event_name)) {
-            cron_log('adding ' . $this->__event_name . ' | ' . $this->__recurrence->getName());
-            wp_schedule_event(time(), $this->__recurrence->getName(), $this->__event_name);
+            cron_log('adding ' . $this->__event_name . ' | ' . $this->__recurrence);
+            wp_schedule_event(time(), $this->__recurrence, $this->__event_name);
         }
     }  
 
