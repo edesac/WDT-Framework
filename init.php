@@ -19,3 +19,4 @@ function cron_log($msg) {
 
 include_once('classes/plugin.class.php');
 include_once('classes/cron.class.php');
+include_once('classes/metabox.class.php');
